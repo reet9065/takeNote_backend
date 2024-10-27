@@ -9,13 +9,13 @@ The Notes API provides an easy way to create, read, update, and delete notes.
 
 1. Run the command:
    ```bash
-   git clone https://
+   git clone https://github.com/reet9065/takeNote_backend.git
    ```
    This will install all required Node.js dependencies.
 
 2. Navigate to the backend directory.
    ```bash
-   cd <directory_name>
+   cd takeNote_backend
    ```
 
 #### 3. Environment Variables
@@ -107,7 +107,7 @@ To run this project, you will need to add the following environment variables to
 5. **Update Note**
    - **Endpoint**: `PATCH /api/note/update/:id`
    - **Description**: Update a note by its ID.
-   - **Request Body** (include only fields to be updated):
+   - **Request Body** :
      ```json
      {
        "title": "Updated Note Title",
