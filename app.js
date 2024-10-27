@@ -1,121 +1,161 @@
-const express =  require("express");
+// Load environment variables from .env file
+require('dotenv').config();
+
+
+const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const notes = require("./models/notesModel");
-const app =  express();
+const app = express();
 
-const port = 4000;
-const clientUrl = "http://localhost:3000"
+// Accessing Port no. from .env and storing it into a variable
+const port = process.env.BACKEND_PORT;
 
+// Accessing client url 
+// In case we deploy this application  
+// and then If we want to allow requests only from specific origins, 
+// we can pass an  object to the cors and use it in express app
+
+const clientUrl = process.env.CLIENT_URL;
 app.use(cors({
-    origin : clientUrl,
+    origin: clientUrl,
 }))
 
-app.use(express.json()); 
+// Middleware for parsing JSON in request body
+app.use(express.json());
 
-/////////////////////////////////// middelware
-app.use((req,res,next)=>{
-    console.log(req.path,req.method);
+// Middleware to log every request path and method from the user
+app.use((req, res, next) => {
+    // Log request path and method
+    console.log(req.path, req.method);
     next();
 })
 
-///////////////////////////////// Get all notes 
-app.get('/api/note/',async(req,res)=>{
+// Route to get all notes 
+app.get('/api/note/', async (req, res) => {
 
-    const getedNotes = await notes.find({}).sort({createdAt : -1});
-
-    res.status(200).json(getedNotes);
-
-
+    try {
+        // Retrieve array of notes from MongoDB server, sorted by createdAt date
+        const getedNotes = await notes.find({}).sort({ createdAt: -1 });
+        // Send response with the retrieved notes
+        res.status(200).json(getedNotes);
+    } catch (error) {
+        // Handle any errors during the retrieval process
+        res.status(500).json({ massage: "Internal Server Error", color: "red" });
+    }
 })
 
 
 
-///////////////////////////////// Get singel note
+// Route to get a single note by ID
 app.get("/api/note/:id",async(req,res)=>{
 
     const {id} =  req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error : `${id} not a valide id`})
+        // Return an error response if the provided ID is not valid
+        return res.status(404).json({massage : `${id} not a valide id`})
     }
-
-    const getedOneNote = await notes.findById(id);
-    if(!getedOneNote){
-        return res.status(404).json({error: `No note found with id :${id} `})
-    }
-
-    res.status(200).json(getedOneNote);
-
-
-})
-
-
-
-
-////////////////////////////////// Post notes
-app.post("/api/note/",async(req,res)=>{
-    const {title , note} = req.body;
 
     try {
-        const savenote = await notes.create({title,note});
-        res.status(200).json({error: "Note Saved Successfully !!", color : "green"});
+        // Retrieve a single note by ID from the MongoDB server
+        const getedOneNote = await notes.findById(id);
+        if (!getedOneNote) {
+            // Return an error response if no note is found with the provided ID
+            return res.status(404).json({ massage: `No note found with ID: ${id}` });
+        }
+
+        // Send the retrieved note as a response
+        res.status(200).json(getedOneNote);
+    } catch (error) {
+        // Handle any errors during the retrieval process
+        res.status(500).json({ massage: "Internal Server Error", color: "red" });
+    }
+
+
+})
+
+
+
+
+app.post("/api/note/", async (req, res) => {
+    const { title, note } = req.body;
+
+    try {
+        // Create and save a new note to the MongoDB server
+        const savedNote = await notes.create({ title, note });
+        // Send a success response
+        res.status(200).json({ message: "Note Saved Successfully!!", color: "green" });
 
     } catch (error) {
-        res.status(400).json({error: "error, Try again", color : "red"});
+        // Handle any errors during the note creation process
+        res.status(400).json({ massage: "Error, Try again", color: "red" });
     }
-
 })
 
 
-///////////////////////////////// Deleting notes
-app.delete("/api/note/delete/:id",async(req,res)=>{
+// Route to delete a note by ID
+app.delete("/api/note/delete/:id", async (req, res) => {
+    const { id } = req.params;
 
-    const {id} =  req.params;
-
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error : `${id} not a valide id`})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        // Return an error response if the provided ID is not valid
+        return res.status(400).json({ massage: `${id} not a valid ID` });
     }
 
-    const delnote = await notes.findOneAndDelete({_id: id});
+    try {
+        // Find and delete a note by ID from the MongoDB server
+        const delNote = await notes.findOneAndDelete({ _id: id });
+        if (!delNote) {
+            // Return an error response if no note is found with the provided ID
+            return res.status(404).json({ massage: `No note found with ID: ${id}` });
+        }
 
-    if(!delnote){
-        return res.status(404).json({error: `No note found with id :${id} `})
+        // Send a success response
+        res.status(200).json({ message: "Note Deleted Successfully!!", color: "DarkPink" });
+
+    } catch (error) {
+        // Handle any errors during the note deletion process
+        res.status(500).json({ massage: "Internal Server Error", color: "red" });
     }
-
-    res.status(200).json({error: "Note Deleted Successfully !!", color : "DarkPink"});
-
 })
 
-/////////////////////////////// Updating notes
-app.patch("/api/note/update/:id",async(req,res)=>{
+// Route to update a note by ID
+app.patch("/api/note/update/:id", async (req, res) => {
+    const { id } = req.params;
 
-    const {id} =  req.params;
-
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error : `${id} not a valide id`})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        // Return an error response if the provided ID is not valid
+        return res.status(400).json({ massage: `${id} not a valid ID` });
     }
 
-    const updatedNote = await notes.findOneAndUpdate({_id: id},{
-        ...req.body
-    });
+    try {
+        // Find and update a note by ID on the MongoDB server
+        const updatedNote = await notes.findOneAndUpdate({ _id: id }, { ...req.body });
+        if (!updatedNote) {
+            // Return an error response if no note is found with the provided ID
+            return res.status(404).json({ massage: `No note found with ID: ${id}` });
+        }
 
-    if(!updatedNote){
-        return res.status(404).json({error: `No note found with id :${id} `})
+        // Send a success response
+        res.status(200).json({ message: "Note Updated Successfully!!", color: "green" });
+
+    } catch (error) {
+        // Handle any errors during the note update process
+        res.status(500).json({ massage: "Internal Server Error", color: "red" });
     }
-
-    res.status(200).json({error: "Note Updated Successfully !!", color : "green"});
-
 })
 
-// conecting to the database and if the connection is failed then don't run the server and  log the error
-mongoose.connect('mongodb://localhost:27017')
-    .then(()=>{
-        app.listen(port,()=>{
-            console.log(`Server running on port : ${port} || http://localhost:${port}/`);
+// Connecting to the database, log an error if connection fails
+mongoose.connect(process.env.CONECTIONSTRING)
+    .then(() => {
+        // Start the server if the database connection is successful
+        app.listen(port, () => {
+            console.log(`Server running on port: ${port} || http://localhost:${port}/`);
         })
     })
-    .catch((error)=>{
+    .catch((error) => {
+        // Log an error if the database connection fails
         console.log(error);
     })
 
